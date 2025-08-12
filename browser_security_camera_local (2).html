@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ブラウザ防犯カメラ（ローカル）</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto; padding:16px; }
+    video, canvas { border:1px solid #ccc; max-width:100%; background:#000; }
+    #controls { margin-top:8px; gap:8px; display:flex; flex-wrap:wrap; }
+    button { padding:8px 12px; }
+    #status { margin-top:8px; font-weight:600; }
+  </style>
+</head>
+<body>
+  <h2>ブラウザ防犯カメラ（ローカル）</h2>
+
+  <video id="preview" autoplay playsinline muted></video>
+  <canvas id="motionCanvas" style="display:none;"></canvas>
+
+  <div id="controls">
+    <button id="startRec">録画開始</button>
+    <button id="stopRec" disabled>録画停止</button>
+    <button id="snapshot">スナップショット</button>
+    <label>
+      動体検知閾値:
+      <input id="sensitivity" type="range" min="5" max="100" value="25" />
+    </label>
+    <label>
+      検知フレーム間隔(ms):
+      <input id="interval" type="number" min="100" max="1000" value="200" />
+    </label>
+  </div>
+
+  <div id="status">ステータス: 初期化中...</div>
+
+  <script>
+    const preview = document.getElementById('preview');
+    const status = document.getElementById('status');
+
+    async function init() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        status.textContent = 'このブラウザはカメラAPIに対応していません';
+        return;
+      }
+
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        if (videoDevices.length === 0) {
+          status.textContent = '利用可能なカメラが見つかりません';
+          return;
+        }
+
+        const constraints = {
+          video: { deviceId: videoDevices[0].deviceId ? { exact: videoDevices[0].deviceId } : undefined },
+          audio: false
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        preview.srcObject = stream;
+        preview.onloadedmetadata = () => {
+          preview.play();
+          status.textContent = 'ステータス: カメラ接続中';
+        };
+      } catch (e) {
+        console.error(e.name, e.message);
+        status.textContent = `カメラにアクセスできません: ${e.name} - ${e.message}`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
